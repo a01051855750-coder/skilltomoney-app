@@ -32,10 +32,24 @@ export default function Home() {
   const handleSubmitReservation = async () => {
     if (!selectedCourse || isSubmitting) return;
 
+    // 1. 이름 비어 있는지 검증
     if (!formData.name.trim()) {
       alert("이름을 입력해 주세요.");
       return;
     }
+
+    // 2. 인원이 남은 자리보다 많은지 검증
+    const remainingSeats = selectedCourse.seat - selectedCourse.booked;
+    if (formData.people > remainingSeats) {
+      alert(`신청 인원(${formData.people}명)이 남은 자리(${remainingSeats}석)보다 많습니다.`);
+      return;
+    }
+
+    if (formData.people < 1) {
+      alert("신청 인원은 최소 1명 이상이어야 합니다.");
+      return;
+    }
+
     if (!formData.phone.trim()) {
       alert("연락처를 입력해 주세요.");
       return;
@@ -63,8 +77,7 @@ export default function Home() {
         throw new Error(data.error || "예약 신청 처리 중 오류가 발생했습니다.");
       }
 
-      const totalFormatted = data.data?.total?.toLocaleString();
-      alert(`예약 신청이 성공적으로 접수되었습니다!${totalFormatted ? `\n(총 결제 금액: ${totalFormatted}원)` : ""}`);
+      alert("예약 신청이 완료되었습니다");
       handleCloseModal();
     } catch (err: any) {
       alert(err.message || "예약 신청 중 문제가 발생했습니다.");
@@ -401,17 +414,28 @@ export default function Home() {
 
               {/* 인원 (숫자) 입력 칸 */}
               <div>
-                <label htmlFor="modal-people" className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  인원 (숫자)
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="modal-people" className="block text-xs font-semibold text-slate-300">
+                    인원 (숫자)
+                  </label>
+                  <span className="text-xs text-amber-300/90 font-medium">
+                    (남은 자리: {selectedCourse.seat - selectedCourse.booked}석)
+                  </span>
+                </div>
                 <input
                   id="modal-people"
                   type="number"
                   min={1}
+                  max={selectedCourse.seat - selectedCourse.booked}
                   value={formData.people}
                   onChange={(e) => setFormData({ ...formData, people: parseInt(e.target.value, 10) || 1 })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 focus:border-amber-400 text-white text-sm outline-none transition-colors"
                 />
+                {formData.people > (selectedCourse.seat - selectedCourse.booked) && (
+                  <p className="text-xs text-red-400 mt-1.5 font-medium">
+                    ⚠️ 신청 인원이 남은 자리({selectedCourse.seat - selectedCourse.booked}석)보다 많습니다.
+                  </p>
+                )}
               </div>
 
               {/* 하단 [닫기] 및 [신청] 버튼 */}
@@ -436,7 +460,7 @@ export default function Home() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                       </svg>
-                      <span>신청 중...</span>
+                      <span>저장 중...</span>
                     </>
                   ) : (
                     <span>신청</span>

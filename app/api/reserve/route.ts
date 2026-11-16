@@ -20,8 +20,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // 서버 측에서 인원 및 결제 금액(수강료 × 인원) 계산
+    // 이름 비어 있는지 검증
+    const trimmedName = String(name || "").trim();
+    if (!trimmedName) {
+      return NextResponse.json(
+        { error: "이름을 입력해 주세요." },
+        { status: 400 }
+      );
+    }
+
+    // 서버 측에서 인원 및 잔여 좌석 검증
     const numPeople = Math.max(1, parseInt(String(people), 10) || 1);
+    const remainingSeats = matchedCourse.seat - matchedCourse.booked;
+
+    if (numPeople > remainingSeats) {
+      return NextResponse.json(
+        { error: `신청 인원(${numPeople}명)이 남은 자리(${remainingSeats}석)보다 많습니다.` },
+        { status: 400 }
+      );
+    }
+
     const total = matchedCourse.price * numPeople;
 
     // .env의 SHEET_URL 확인 (브라우저에 노출되지 않음)
@@ -37,19 +55,20 @@ export async function POST(request: Request) {
     const payload = {
       date: matchedCourse.date || date || "",
       course: matchedCourse.name,
-      name: String(name || "").trim(),
+      name: trimmedName,
       phone: String(phone || "").trim(),
       people: numPeople,
       total,
     };
 
-    // Google Sheets 웹앱 URL로 JSON 전송
+    // Google Sheets 웹앱 URL로 JSON 전송 (redirect: "follow" 필수)
     const sheetResponse = await fetch(sheetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      redirect: "follow",
     });
 
     if (!sheetResponse.ok) {
