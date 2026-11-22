@@ -42,14 +42,10 @@ export async function POST(request: Request) {
 
     const total = matchedCourse.price * numPeople;
 
-    // .env의 SHEET_URL 확인 (브라우저에 노출되지 않음)
-    const sheetUrl = process.env.SHEET_URL;
-    if (!sheetUrl) {
-      return NextResponse.json(
-        { error: "서버에 SHEET_URL 환경 변수가 설정되어 있지 않습니다." },
-        { status: 500 }
-      );
-    }
+    // .env의 SHEET_URL 확인 (없을 경우 배포된 구글 시트 URL을 기본값으로 사용)
+    const fallbackSheetUrl =
+      "https://script.google.com/macros/s/AKfycbwwSQek_kwZNqspAedWIVeiB2pwYOqtimhlhQrhFakvi9Y5GF1rrZ7aG9uD1lkEth8qvg/exec";
+    const sheetUrl = process.env.SHEET_URL || fallbackSheetUrl;
 
     // {date, course, name, phone, people, total} JSON 페이로드 구성
     const payload = {
